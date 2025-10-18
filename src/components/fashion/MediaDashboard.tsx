@@ -488,11 +488,11 @@ export function MediaDashboard({
           onClick={closeRegenerateModal}
         >
           <div
-            className="bg-zinc-900 border-2 border-purple-500/50 rounded-xl max-w-2xl w-full relative"
+            className="bg-zinc-900 border-2 border-purple-500/50 rounded-xl w-full sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-hidden relative flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-zinc-800">
               <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                 <RefreshCw className="w-6 h-6 text-purple-400" />
                 Regenerar con IA
@@ -507,13 +507,13 @@ export function MediaDashboard({
             </div>
 
             {/* Contenido */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4 overflow-y-auto flex-1">
               {/* Preview de la imagen actual */}
               <div className="flex gap-4">
                 <img
                   src={`data:${regenerateModal.item.image.mediaType};base64,${regenerateModal.item.image.base64Data}`}
                   alt={regenerateModal.item.title}
-                  className="w-32 h-32 object-cover rounded-lg border border-zinc-700"
+                  className="md:w-48 md:h-48 w-32 h-32 object-cover rounded-lg border border-zinc-700"
                 />
                 <div className="flex-1">
                   <h4 className="text-white font-bold mb-2">{regenerateModal.item.title}</h4>
@@ -573,7 +573,7 @@ export function MediaDashboard({
             </div>
 
             {/* Footer con botones */}
-            <div className="flex gap-4 p-6 border-t border-zinc-800">
+            <div className="flex gap-4 p-4 md:p-6 border-t border-zinc-800">
               <button
                 onClick={closeRegenerateModal}
                 className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-xl transition-colors"

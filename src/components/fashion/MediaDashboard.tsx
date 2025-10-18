@@ -84,12 +84,14 @@ export function MediaDashboard({
 
   // Handlers para modal de regeneración
   const openRegenerateModal = (item: CatalogItem) => {
+    console.log('🚀 openRegenerateModal called with item:', item.title);
     setRegenerateModal({
       isOpen: true,
       item,
       instructions: '',
       isLoading: false
     });
+    console.log('✅ Modal state updated to open');
   };
 
   const closeRegenerateModal = () => {
@@ -137,6 +139,13 @@ export function MediaDashboard({
     { id: 'favorites' as const, label: 'Favorites', count: favorites.length, icon: '❤️' },
     { id: 'uploads' as const, label: 'Uploads', count: uploadedGarments.length, icon: '📁' }
   ];
+
+  // Debug log para ver el estado del modal
+  console.log('📊 MediaDashboard render - Modal state:', {
+    isOpen: regenerateModal.isOpen,
+    hasItem: !!regenerateModal.item,
+    itemTitle: regenerateModal.item?.title
+  });
 
   return (
     <div className="space-y-6">
@@ -407,6 +416,14 @@ export function MediaDashboard({
       </GlassCard>
 
       {/* Modal de Regeneración con IA */}
+      {(() => {
+        console.log('🎭 Checking modal render condition:', {
+          isOpen: regenerateModal.isOpen,
+          hasItem: !!regenerateModal.item,
+          shouldRender: regenerateModal.isOpen && !!regenerateModal.item
+        });
+        return null;
+      })()}
       {regenerateModal.isOpen && regenerateModal.item && (
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"

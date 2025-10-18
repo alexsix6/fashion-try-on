@@ -356,55 +356,65 @@ export function MediaDashboard({
             </div>
 
             {/* Contenido con scroll */}
-            <div className="grid md:grid-cols-[400px,1fr] gap-6 p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-              <div className="space-y-4">
-                <img 
+            <div className="grid md:grid-cols-[380px,1fr] gap-0 overflow-y-auto max-h-[calc(85vh-80px)]">
+              {/* Sección de imagen - Fondo oscuro */}
+              <div className="p-6 bg-zinc-900/50 space-y-4">
+                <img
                   src={`data:${selectedItem.image.mediaType};base64,${selectedItem.image.base64Data}`}
                   alt={selectedItem.title}
-                  className="w-full rounded-xl shadow-2xl"
+                  className="w-full rounded-lg shadow-2xl border border-purple-500/30"
                 />
-                <div className="text-center text-xs text-zinc-500">
-                  Creado el {new Date(selectedItem.createdAt).toLocaleDateString('es-ES', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
+                <div className="text-center">
+                  <span className="inline-block px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-full text-xs text-purple-300 font-medium">
+                    📅 Creado el {new Date(selectedItem.createdAt).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </span>
                 </div>
               </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-xs font-bold text-purple-400 mb-3 uppercase tracking-wide">Título</h4>
-                  <p className="text-white text-xl font-semibold leading-relaxed">{selectedItem.title}</p>
+
+              {/* Sección de descripción - Fondo más claro */}
+              <div className="p-6 bg-zinc-800/70 space-y-6 border-l border-zinc-700/50">
+                <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
+                  <h4 className="text-xs font-bold text-purple-400 mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <span>📝</span> Título
+                  </h4>
+                  <p className="text-white text-xl font-bold leading-relaxed">{selectedItem.title}</p>
                 </div>
-                
-                <div>
-                  <h4 className="text-xs font-bold text-purple-400 mb-3 uppercase tracking-wide">Descripción Completa</h4>
-                  <div className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
+
+                <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
+                  <h4 className="text-xs font-bold text-purple-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    <span>✨</span> Descripción Completa
+                  </h4>
+                  <div className="text-zinc-100 text-base leading-relaxed whitespace-pre-line">
                     {selectedItem.description}
                   </div>
                 </div>
-                
+
                 {selectedItem.metadata && (
-                  <div>
-                    <h4 className="text-sm font-bold text-purple-400 mb-3 uppercase tracking-wide">Detalles Técnicos</h4>
-                    <div className="space-y-2">
+                  <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
+                    <h4 className="text-xs font-bold text-purple-400 mb-4 uppercase tracking-wide flex items-center gap-2">
+                      <span>🏷️</span> Detalles Técnicos
+                    </h4>
+                    <div className="space-y-3">
                       {selectedItem.metadata.colors && selectedItem.metadata.colors.length > 0 && (
-                        <div className="flex items-start gap-2">
-                          <span className="text-zinc-500 font-medium min-w-[80px]">Colores:</span>
-                          <span className="text-white">{selectedItem.metadata.colors.join(', ')}</span>
+                        <div className="flex items-start gap-3">
+                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Colores:</span>
+                          <span className="text-white font-medium">{selectedItem.metadata.colors.join(', ')}</span>
                         </div>
                       )}
                       {selectedItem.metadata.style && (
-                        <div className="flex items-start gap-2">
-                          <span className="text-zinc-500 font-medium min-w-[80px]">Estilo:</span>
-                          <span className="text-white">{selectedItem.metadata.style}</span>
+                        <div className="flex items-start gap-3">
+                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Estilo:</span>
+                          <span className="text-white font-medium">{selectedItem.metadata.style}</span>
                         </div>
                       )}
                       {selectedItem.metadata.garmentType && (
-                        <div className="flex items-start gap-2">
-                          <span className="text-zinc-500 font-medium min-w-[80px]">Tipo:</span>
-                          <span className="text-white">{selectedItem.metadata.garmentType}</span>
+                        <div className="flex items-start gap-3">
+                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Tipo:</span>
+                          <span className="text-white font-medium">{selectedItem.metadata.garmentType}</span>
                         </div>
                       )}
                     </div>

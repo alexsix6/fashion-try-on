@@ -1,18 +1,22 @@
-import sharp from 'sharp';
+// Import sharp only when needed to avoid Vercel build errors
+// import sharp from 'sharp';
 
 /**
  * Aplica un filtro suave para estilizar la imagen del modelo antes de enviarla a Gemini.
  * Reduce rasgos faciales detallados y produce una apariencia ilustrada, preservando la prenda.
+ *
+ * NOTA: Sanitización actualmente DESHABILITADA - retorna imagen original
  */
 export async function sanitizeModelImage(base64Image?: string): Promise<string | undefined> {
   if (!base64Image) {
     return undefined;
   }
 
-  // TEMPORAL: Desactivar sanitización para pruebas
+  // SANITIZACIÓN DESHABILITADA - retorna imagen original sin procesamiento
+  // Para habilitar: descomentar import sharp arriba y el código below
   return base64Image;
 
-  // Unreachable code below - kept for future use when sanitization is re-enabled
+  /* Unreachable code below - kept for future use when sanitization is re-enabled
   // Using non-null assertion since we've already checked for undefined above
   try {
     const buffer = Buffer.from(base64Image!, 'base64');
@@ -62,4 +66,5 @@ export async function sanitizeModelImage(base64Image?: string): Promise<string |
     console.warn('sanitizeModelImage: fallback to original image due to error', error);
     return base64Image;
   }
+  */
 }

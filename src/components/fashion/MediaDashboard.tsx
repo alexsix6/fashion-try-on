@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CatalogItem } from '@/lib/types';
-import { Download, Trash2, ChevronLeft, ChevronRight, Heart, Info, Image as ImageIcon } from 'lucide-react';
+import { Download, Trash2, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import { LiquidButton } from '@/components/ui/liquid-button';
 
@@ -19,20 +19,19 @@ interface MediaDashboardProps {
 
 const ITEMS_PER_PAGE = 12; // 4 columnas x 3 filas
 
-export function MediaDashboard({ 
-  catalog, 
+export function MediaDashboard({
+  catalog,
   favorites,
   uploadedGarments,
-  onDownload, 
-  onRemove, 
+  onDownload,
+  onRemove,
   onClear,
   onToggleFavorite,
   onViewDescription
 }: MediaDashboardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTab, setSelectedTab] = useState<'generated' | 'favorites' | 'uploads'>('generated');
-  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   // Filtrar items según el tab activo
   const getFilteredItems = () => {
@@ -60,10 +59,12 @@ export function MediaDashboard({
     setCurrentPage(1);
   };
 
-  const handleViewDescription = (item: CatalogItem) => {
-    setSelectedItem(item);
-    setShowDescriptionModal(true);
-    onViewDescription(item);
+  // Toggle expansion state for a specific item
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
   };
 
   const tabs = [
@@ -148,55 +149,66 @@ export function MediaDashboard({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {currentItems.map((item: CatalogItem) => {
               const isFavorite = favorites.includes(item.id);
+              const isExpanded = expandedItems[item.id] || false;
+              const maxDescriptionLength = 120;
+              const shouldTruncate = item.description.length > maxDescriptionLength;
+              const displayDescription = !isExpanded && shouldTruncate
+                ? item.description.substring(0, maxDescriptionLength) + '...'
+                : item.description;
+
               return (
-                <div key={item.id} className="space-y-2">
-                  {/* Imagen con solo la fecha arriba */}
-                  <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900/50 border-2 border-zinc-800 hover:border-purple-500 transition-colors shadow-lg">
-                    <img 
+                <div key={item.id} className="space-y-2 bg-zinc-900/30 border border-zinc-800 rounded-xl p-3 hover:border-purple-500/50 transition-colors">
+                  {/* Imagen con fecha arriba */}
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-zinc-900/50 border border-zinc-700">
+                    <img
                       src={`data:${item.image.mediaType};base64,${item.image.base64Data}`}
                       alt={item.title}
                       className="w-full h-full object-cover"
                     />
-                    
-                    {/* Solo fecha - sin corazón */}
-                    <div className="absolute top-3 left-3 z-10">
-                      <span className="px-2.5 py-1 bg-black/80 backdrop-blur-sm text-white text-xs font-medium rounded-full shadow-lg">
+
+                    {/* Fecha */}
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="px-2 py-1 bg-black/80 backdrop-blur-sm text-white text-xs font-medium rounded-full shadow-lg">
                         {new Date(item.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   </div>
 
-                  {/* 4 Botones funcionales - SIN título */}
-                  <div className="grid grid-cols-4 gap-2">
-                    <button
-                      onClick={() => {
-                        console.log('🔵 Botón descripción clickeado!', item.title);
-                        console.log('🔵 Item completo:', item);
-                        setSelectedItem(item);
-                        setShowDescriptionModal(true);
-                        console.log('🔵 Modal debería abrirse ahora!');
-                      }}
-                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center"
-                      title="Ver descripción completa"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    
+                  {/* Descripción inline debajo de la imagen */}
+                  <div className="space-y-1">
+                    <h4 className="text-white text-sm font-bold leading-tight line-clamp-2">
+                      {item.title}
+                    </h4>
+                    <p className="text-zinc-400 text-xs leading-relaxed">
+                      {displayDescription}
+                    </p>
+                    {shouldTruncate && (
+                      <button
+                        onClick={() => toggleExpanded(item.id)}
+                        className="text-purple-400 hover:text-purple-300 text-xs font-medium"
+                      >
+                        {isExpanded ? '↑ Ver menos' : '↓ Ver más'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 3 Botones funcionales (removido Info) */}
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleFavorite(item.id);
                       }}
                       className={`px-3 py-2 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center ${
-                        isFavorite 
-                          ? 'bg-red-500 hover:bg-red-600' 
+                        isFavorite
+                          ? 'bg-red-500 hover:bg-red-600'
                           : 'bg-zinc-700 hover:bg-red-500'
                       }`}
                       title={isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
                     >
                       <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                     </button>
-                    
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -207,7 +219,7 @@ export function MediaDashboard({
                     >
                       <Download className="w-4 h-4" />
                     </button>
-                    
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -324,131 +336,6 @@ export function MediaDashboard({
           </div>
         )}
       </GlassCard>
-
-      {/* Modal de descripción - MEJORADO */}
-      {(() => {
-        console.log('🟢 Renderizando modal check:', { showDescriptionModal, hasSelectedItem: !!selectedItem });
-        return null;
-      })()}
-      {showDescriptionModal && selectedItem && (
-        <div 
-          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-          onClick={() => setShowDescriptionModal(false)}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div 
-            className="bg-zinc-900 border-2 border-purple-500/50 rounded-xl max-w-6xl w-full max-h-[85vh] relative z-[10000]"
-            onClick={(e) => e.stopPropagation()}
-            style={{ position: 'relative' }}
-          >
-            {/* Header fijo */}
-            <div className="flex items-center justify-between p-6 border-b border-zinc-800 bg-zinc-900">
-              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Info className="w-6 h-6 text-purple-400" />
-                Descripción Completa
-              </h3>
-              <button 
-                onClick={() => setShowDescriptionModal(false)}
-                className="text-zinc-400 hover:text-white text-2xl w-10 h-10 flex items-center justify-center hover:bg-zinc-800 rounded-lg transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Contenido con scroll */}
-            <div className="grid md:grid-cols-[380px,1fr] gap-0 overflow-y-auto max-h-[calc(85vh-80px)]">
-              {/* Sección de imagen - Fondo oscuro */}
-              <div className="p-6 bg-zinc-900/50 space-y-4">
-                <img
-                  src={`data:${selectedItem.image.mediaType};base64,${selectedItem.image.base64Data}`}
-                  alt={selectedItem.title}
-                  className="w-full rounded-lg shadow-2xl border border-purple-500/30"
-                />
-                <div className="text-center">
-                  <span className="inline-block px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-full text-xs text-purple-300 font-medium">
-                    📅 Creado el {new Date(selectedItem.createdAt).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Sección de descripción - Fondo más claro */}
-              <div className="p-6 bg-zinc-800/70 space-y-6 border-l border-zinc-700/50">
-                <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
-                  <h4 className="text-xs font-bold text-purple-400 mb-2 uppercase tracking-wide flex items-center gap-2">
-                    <span>📝</span> Título
-                  </h4>
-                  <p className="text-white text-xl font-bold leading-relaxed">{selectedItem.title}</p>
-                </div>
-
-                <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
-                  <h4 className="text-xs font-bold text-purple-400 mb-3 uppercase tracking-wide flex items-center gap-2">
-                    <span>✨</span> Descripción Completa
-                  </h4>
-                  <div className="text-zinc-100 text-base leading-relaxed whitespace-pre-line">
-                    {selectedItem.description}
-                  </div>
-                </div>
-
-                {selectedItem.metadata && (
-                  <div className="bg-zinc-900/50 p-5 rounded-lg border border-purple-500/20">
-                    <h4 className="text-xs font-bold text-purple-400 mb-4 uppercase tracking-wide flex items-center gap-2">
-                      <span>🏷️</span> Detalles Técnicos
-                    </h4>
-                    <div className="space-y-3">
-                      {selectedItem.metadata.colors && selectedItem.metadata.colors.length > 0 && (
-                        <div className="flex items-start gap-3">
-                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Colores:</span>
-                          <span className="text-white font-medium">{selectedItem.metadata.colors.join(', ')}</span>
-                        </div>
-                      )}
-                      {selectedItem.metadata.style && (
-                        <div className="flex items-start gap-3">
-                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Estilo:</span>
-                          <span className="text-white font-medium">{selectedItem.metadata.style}</span>
-                        </div>
-                      )}
-                      {selectedItem.metadata.garmentType && (
-                        <div className="flex items-start gap-3">
-                          <span className="text-purple-400 font-semibold min-w-[90px] text-sm">Tipo:</span>
-                          <span className="text-white font-medium">{selectedItem.metadata.garmentType}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Footer con botones */}
-            <div className="flex gap-4 p-6 border-t border-zinc-800 bg-zinc-900">
-              <button
-                onClick={() => onDownload(selectedItem)}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-xl"
-              >
-                <Download className="w-5 h-5" />
-                Descargar
-              </button>
-              <button
-                onClick={() => {
-                  onToggleFavorite(selectedItem.id);
-                }}
-                className={`flex-1 px-6 py-3 font-bold rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-xl ${
-                  favorites.includes(selectedItem.id)
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${favorites.includes(selectedItem.id) ? 'fill-current' : ''}`} />
-                {favorites.includes(selectedItem.id) ? 'Favorito' : 'Añadir a Favoritos'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

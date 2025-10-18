@@ -102,15 +102,32 @@ export function MediaDashboard({
   };
 
   const handleRegenerateSubmit = async () => {
-    if (!regenerateModal.item || !regenerateModal.instructions.trim()) return;
+    console.log('🔄 handleRegenerateSubmit called');
+    console.log('Modal state:', regenerateModal);
 
+    if (!regenerateModal.item || !regenerateModal.instructions.trim()) {
+      console.log('❌ Validation failed:', {
+        hasItem: !!regenerateModal.item,
+        hasInstructions: !!regenerateModal.instructions.trim(),
+        instructions: regenerateModal.instructions
+      });
+      return;
+    }
+
+    console.log('✅ Validation passed, starting regeneration...');
     setRegenerateModal(prev => ({ ...prev, isLoading: true }));
 
     try {
+      console.log('Calling onRegenerateWithAI with:', {
+        itemTitle: regenerateModal.item.title,
+        instructions: regenerateModal.instructions
+      });
       await onRegenerateWithAI(regenerateModal.item, regenerateModal.instructions);
+      console.log('✅ Regeneration successful, closing modal');
       closeRegenerateModal();
     } catch (error) {
-      console.error('Error regenerating image:', error);
+      console.error('❌ Error regenerating image:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       setRegenerateModal(prev => ({ ...prev, isLoading: false }));
     }
   };

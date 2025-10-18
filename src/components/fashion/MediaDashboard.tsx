@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { CatalogItem } from '@/lib/types';
 import { Download, Trash2, ChevronLeft, ChevronRight, Heart, RefreshCw } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
@@ -133,6 +134,31 @@ export function MediaDashboard({
       setRegenerateModal(prev => ({ ...prev, isLoading: false }));
     }
   };
+
+  // Escape key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && regenerateModal.isOpen && !regenerateModal.isLoading) {
+        closeRegenerateModal();
+      }
+    };
+
+    if (regenerateModal.isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [regenerateModal.isOpen, regenerateModal.isLoading]);
+
+  // Auto-focus textarea when modal opens
+  useEffect(() => {
+    if (regenerateModal.isOpen && typeof document !== 'undefined') {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const textarea = document.querySelector('textarea[placeholder*="quieres cambiar"]') as HTMLTextAreaElement;
+        textarea?.focus();
+      }, 100);
+    }
+  }, [regenerateModal.isOpen]);
 
   const tabs = [
     { id: 'generated' as const, label: 'Generated', count: catalog.length, icon: '🎨' },
@@ -424,7 +450,7 @@ export function MediaDashboard({
         });
         return null;
       })()}
-      {regenerateModal.isOpen && regenerateModal.item && (
+      {regenerateModal.isOpen && regenerateModal.item && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
           onClick={closeRegenerateModal}
@@ -542,7 +568,8 @@ export function MediaDashboard({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

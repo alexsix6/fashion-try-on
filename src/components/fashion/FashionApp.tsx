@@ -42,6 +42,7 @@ export function FashionApp() {
     downloadImage,
     toggleFavorite,
     viewDescription,
+    regenerateWithAI,
   } = useFashionApp();
 
   // SOLO MODO DUEÑO ACTIVO - Modo cliente mantenido en código pero oculto
@@ -127,29 +128,6 @@ export function FashionApp() {
           )}
         </GlassCard>
 
-        {/* Conversación con IA - Opcional */}
-        <GlassCard variant="dark">
-          <h3 className="text-lg font-semibold text-white mb-4">Conversación con IA</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              disabled={isInputDisabled}
-              placeholder="Describe qué quieres hacer..."
-              className="flex-1 px-4 py-3 bg-black/30 border border-purple-500/30 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-gray-400"
-              onKeyPress={(e) => { if (e.key === 'Enter' && inputValue.trim()) { sendMessage(inputValue.trim()); } }}
-            />
-            <LiquidButton
-              onClick={() => inputValue.trim() && sendMessage(inputValue.trim())}
-              disabled={!inputValue.trim() || isInputDisabled}
-              variant="space"
-              size="lg"
-            >
-              Enviar
-            </LiquidButton>
-          </div>
-        </GlassCard>
       </div>
 
       {/* Media Dashboard con paginación */}
@@ -162,6 +140,7 @@ export function FashionApp() {
         onClear={clearCatalog}
         onToggleFavorite={toggleFavorite}
         onViewDescription={viewDescription}
+        onRegenerateWithAI={regenerateWithAI}
       />
     </div>
   );

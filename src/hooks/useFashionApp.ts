@@ -83,6 +83,7 @@ interface FashionAppActions {
   uploadedGarments: Array<{ id: string; image: string; name: string }>;
   toggleFavorite: (itemId: string) => void;
   viewDescription: (item: CatalogItem) => void;
+  regenerateWithAI: (item: CatalogItem, instructions: string) => Promise<void>;
 }
 
 const initialState: FashionAppState = {
@@ -761,6 +762,119 @@ export function useFashionApp(): FashionAppState & FashionAppActions {
     console.log('Viewing description for:', item.title);
   }, []);
 
+  // Regenerate with AI using custom instructions
+  const regenerateWithAI = useCallback(async (item: CatalogItem, instructions: string) => {
+    try {
+      console.log('=== REGENERANDO CON INSTRUCCIONES PERSONALIZADAS ===');
+      console.log('Instrucciones:', instructions);
+      console.log('Item original:', item.title);
+
+      // Construir prompt personalizado con instrucciones del usuario
+      const customPrompt = `Regenerar imagen de catálogo de moda con los siguientes cambios específicos: ${instructions}.
+      Mantener la prenda y el estilo general, pero aplicar las modificaciones solicitadas.`;
+
+      const imageResponse = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imagePrompt: customPrompt,
+          modelImage: item.modelImage, // Imagen original del modelo del catálogo
+          garmentImage: item.garmentImage, // Imagen original de la prenda del catálogo
+          mode: 'catalog',
+          garmentDescription: `Prenda del catálogo: ${item.description}. CAMBIOS SOLICITADOS: ${instructions}`,
+          personDescription: `Modelo del catálogo. CAMBIOS SOLICITADOS: ${instructions}`
+        })
+      });
+
+      if (!imageResponse.ok) throw new Error('Failed to regenerate image with AI');
+      const imageData: ImageResponse = await imageResponse.json();
+
+      if (!imageData.image) {
+        throw new Error('No image was generated');
+      }
+
+      // Generar nueva descripción basada en las modificaciones
+      let newDescription = item.description;
+      try {
+        const catalogResponse = await fetch('/api/generate-catalog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userMessage: `Actualizar descripción incorporando estos cambios: ${instructions}`,
+            conversationHistory: [],
+            isStart: true,
+            mode: 'catalog',
+            generatedImage: imageData.image.base64Data
+          })
+        });
+
+        if (catalogResponse.ok) {
+          const catalogData: CatalogResponse = await catalogResponse.json();
+          newDescription = catalogData.story;
+        }
+      } catch {
+        // Fallback: agregar nota de modificación a la descripción original
+        newDescription = `${item.description}\n\n✨ Variación: ${instructions}`;
+      }
+
+      // APLICAR MARCA DE AGUA
+      try {
+        const watermarkedBase64 = await applyIntelligentWatermark(
+          imageData.image.base64Data,
+          {
+            position: 'bottom-right',
+            opacity: 0.6,
+            size: 'medium',
+            style: 'full'
+          }
+        );
+
+        const generatedImage: GeneratedImage = {
+          base64Data: watermarkedBase64,
+          mediaType: imageData.image.mediaType,
+          uint8ArrayData: new Uint8Array()
+        };
+
+        const newTitle = `${item.title.split('...')[0]} (${instructions.substring(0, 20)}...)`;
+
+        catalogHook.addCatalogItem(
+          newTitle,
+          newDescription,
+          generatedImage,
+          item.modelImage,
+          item.garmentImage,
+          ['generated', 'catalog', 'watermarked', 'ai-regenerated']
+        );
+
+        console.log('Imagen regenerada con IA exitosamente');
+      } catch (watermarkError) {
+        console.error('Error aplicando marca de agua:', watermarkError);
+
+        // Fallback sin marca de agua
+        const generatedImage: GeneratedImage = {
+          base64Data: imageData.image.base64Data,
+          mediaType: imageData.image.mediaType,
+          uint8ArrayData: new Uint8Array()
+        };
+
+        const newTitle = `${item.title.split('...')[0]} (${instructions.substring(0, 20)}...)`;
+
+        catalogHook.addCatalogItem(
+          newTitle,
+          newDescription,
+          generatedImage,
+          item.modelImage,
+          item.garmentImage,
+          ['generated', 'catalog', 'ai-regenerated']
+        );
+      }
+
+    } catch (error) {
+      console.error('Error regenerating with AI:', error);
+      throw error;
+    }
+  }, [catalogHook]);
+
   return {
     // State
     ...state,
@@ -792,5 +906,6 @@ export function useFashionApp(): FashionAppState & FashionAppActions {
     // New actions
     toggleFavorite,
     viewDescription,
+    regenerateWithAI,
   };
 }

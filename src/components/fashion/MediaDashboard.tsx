@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CatalogItem } from '@/lib/types';
-import { Download, Trash2, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { Download, Trash2, ChevronLeft, ChevronRight, Heart, RefreshCw } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import { LiquidButton } from '@/components/ui/liquid-button';
 
@@ -15,6 +15,7 @@ interface MediaDashboardProps {
   onClear: () => void;
   onToggleFavorite: (itemId: string) => void;
   onViewDescription: (item: CatalogItem) => void;
+  onRegenerateWithAI: (item: CatalogItem, instructions: string) => Promise<void>;
 }
 
 const ITEMS_PER_PAGE = 12; // 4 columnas x 3 filas
@@ -27,11 +28,25 @@ export function MediaDashboard({
   onRemove,
   onClear,
   onToggleFavorite,
-  onViewDescription
+  onViewDescription,
+  onRegenerateWithAI
 }: MediaDashboardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTab, setSelectedTab] = useState<'generated' | 'favorites' | 'uploads'>('generated');
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  // Estado para modal de regeneración
+  const [regenerateModal, setRegenerateModal] = useState<{
+    isOpen: boolean;
+    item: CatalogItem | null;
+    instructions: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    item: null,
+    instructions: '',
+    isLoading: false
+  });
 
   // Filtrar items según el tab activo
   const getFilteredItems = () => {
@@ -67,6 +82,39 @@ export function MediaDashboard({
     }));
   };
 
+  // Handlers para modal de regeneración
+  const openRegenerateModal = (item: CatalogItem) => {
+    setRegenerateModal({
+      isOpen: true,
+      item,
+      instructions: '',
+      isLoading: false
+    });
+  };
+
+  const closeRegenerateModal = () => {
+    setRegenerateModal({
+      isOpen: false,
+      item: null,
+      instructions: '',
+      isLoading: false
+    });
+  };
+
+  const handleRegenerateSubmit = async () => {
+    if (!regenerateModal.item || !regenerateModal.instructions.trim()) return;
+
+    setRegenerateModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await onRegenerateWithAI(regenerateModal.item, regenerateModal.instructions);
+      closeRegenerateModal();
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      setRegenerateModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   const tabs = [
     { id: 'generated' as const, label: 'Generated', count: catalog.length, icon: '🎨' },
     { id: 'favorites' as const, label: 'Favorites', count: favorites.length, icon: '❤️' },
@@ -81,13 +129,6 @@ export function MediaDashboard({
           <div className="flex items-center gap-2">
             <span className="text-2xl">🎨</span>
             <h2 className="text-2xl font-bold text-white">Media Dashboard</h2>
-            <button 
-              className="ml-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled
-              title="Próximamente: Combinar múltiples prendas"
-            >
-              🔗 Combine
-            </button>
           </div>
           {(selectedTab === 'generated' || selectedTab === 'favorites') && filteredItems.length > 0 && (
             <LiquidButton onClick={onClear} variant="destructive" size="sm">
@@ -192,8 +233,8 @@ export function MediaDashboard({
                     )}
                   </div>
 
-                  {/* 3 Botones funcionales (removido Info) */}
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* 4 Botones funcionales con Regenerar con IA */}
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -207,6 +248,17 @@ export function MediaDashboard({
                       title={isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
                     >
                       <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openRegenerateModal(item);
+                      }}
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center"
+                      title="Regenerar con IA"
+                    >
+                      <RefreshCw className="w-4 h-4" />
                     </button>
 
                     <button
@@ -336,6 +388,128 @@ export function MediaDashboard({
           </div>
         )}
       </GlassCard>
+
+      {/* Modal de Regeneración con IA */}
+      {regenerateModal.isOpen && regenerateModal.item && (
+        <div
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          onClick={closeRegenerateModal}
+        >
+          <div
+            className="bg-zinc-900 border-2 border-purple-500/50 rounded-xl max-w-2xl w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                <RefreshCw className="w-6 h-6 text-purple-400" />
+                Regenerar con IA
+              </h3>
+              <button
+                onClick={closeRegenerateModal}
+                className="text-zinc-400 hover:text-white text-2xl w-10 h-10 flex items-center justify-center hover:bg-zinc-800 rounded-lg transition-colors"
+                disabled={regenerateModal.isLoading}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-6 space-y-4">
+              {/* Preview de la imagen actual */}
+              <div className="flex gap-4">
+                <img
+                  src={`data:${regenerateModal.item.image.mediaType};base64,${regenerateModal.item.image.base64Data}`}
+                  alt={regenerateModal.item.title}
+                  className="w-32 h-32 object-cover rounded-lg border border-zinc-700"
+                />
+                <div className="flex-1">
+                  <h4 className="text-white font-bold mb-2">{regenerateModal.item.title}</h4>
+                  <p className="text-zinc-400 text-sm line-clamp-3">{regenerateModal.item.description}</p>
+                </div>
+              </div>
+
+              {/* Instrucciones */}
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  ¿Qué quieres cambiar?
+                </label>
+                <textarea
+                  value={regenerateModal.instructions}
+                  onChange={(e) => setRegenerateModal(prev => ({ ...prev, instructions: e.target.value }))}
+                  placeholder="Ejemplo: fondo exterior con naturaleza, prenda más brillante, modelo sonriendo..."
+                  className="w-full px-4 py-3 bg-black/30 border border-purple-500/30 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-gray-400 resize-none"
+                  rows={4}
+                  disabled={regenerateModal.isLoading}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey && regenerateModal.instructions.trim()) {
+                      handleRegenerateSubmit();
+                    }
+                  }}
+                />
+                <p className="text-xs text-zinc-500 mt-2">
+                  💡 Tip: Presiona Ctrl + Enter para regenerar
+                </p>
+              </div>
+
+              {/* Ejemplos de sugerencias */}
+              <div className="bg-zinc-800/50 p-4 rounded-lg">
+                <p className="text-xs text-purple-400 font-semibold mb-2">EJEMPLOS DE CAMBIOS:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Fondo exterior',
+                    'Prenda más brillante',
+                    'Modelo sonriendo',
+                    'Iluminación cálida',
+                    'Pose más dinámica',
+                    'Fondo blanco minimalista'
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => setRegenerateModal(prev => ({
+                        ...prev,
+                        instructions: prev.instructions ? `${prev.instructions}, ${example.toLowerCase()}` : example
+                      }))}
+                      className="px-3 py-1 bg-zinc-700 hover:bg-purple-600 text-white text-xs rounded-full transition-colors"
+                      disabled={regenerateModal.isLoading}
+                    >
+                      + {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer con botones */}
+            <div className="flex gap-4 p-6 border-t border-zinc-800">
+              <button
+                onClick={closeRegenerateModal}
+                className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-xl transition-colors"
+                disabled={regenerateModal.isLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRegenerateSubmit}
+                disabled={!regenerateModal.instructions.trim() || regenerateModal.isLoading}
+                className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {regenerateModal.isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Regenerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5" />
+                    <span>Regenerar con IA</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

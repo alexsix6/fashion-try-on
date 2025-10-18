@@ -36,6 +36,9 @@ export function MediaDashboard({
   const [selectedTab, setSelectedTab] = useState<'generated' | 'favorites' | 'uploads'>('generated');
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
+  // CRITICAL: Track client-side mounting to prevent SSR/hydration issues
+  const [isMounted, setIsMounted] = useState(false);
+
   // Estado para modal de regeneración
   const [regenerateModal, setRegenerateModal] = useState<{
     isOpen: boolean;
@@ -148,6 +151,12 @@ export function MediaDashboard({
       return () => document.removeEventListener('keydown', handleEscape);
     }
   }, [regenerateModal.isOpen, regenerateModal.isLoading]);
+
+  // CRITICAL: Set mounted state after client-side hydration
+  useEffect(() => {
+    console.log('🔧 Setting isMounted to true (client-side hydration complete)');
+    setIsMounted(true);
+  }, []);
 
   // Auto-focus textarea when modal opens
   useEffect(() => {
@@ -443,16 +452,39 @@ export function MediaDashboard({
 
       {/* Modal de Regeneración con IA */}
       {(() => {
-        console.log('🎭 Checking modal render condition:', {
+        console.log('🎭 Portal render check:', {
+          isMounted,
           isOpen: regenerateModal.isOpen,
           hasItem: !!regenerateModal.item,
-          shouldRender: regenerateModal.isOpen && !!regenerateModal.item
+          shouldRender: isMounted && regenerateModal.isOpen && !!regenerateModal.item,
+          documentExists: typeof document !== 'undefined'
         });
         return null;
       })()}
-      {regenerateModal.isOpen && regenerateModal.item && typeof document !== 'undefined' && createPortal(
+      {isMounted && regenerateModal.isOpen && regenerateModal.item && createPortal(
         <div
+          ref={(el) => {
+            if (el) {
+              console.log('✅ MODAL DIV MOUNTED IN DOM:', el);
+              console.log('✅ Computed styles:', window.getComputedStyle(el));
+              console.log('✅ Parent:', el.parentElement);
+              console.log('✅ Is visible?', el.offsetWidth > 0 && el.offsetHeight > 0);
+            }
+          }}
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
           onClick={closeRegenerateModal}
         >
           <div

@@ -43,7 +43,7 @@ const PROGRESSIVE_PROMPTS = [
 ];
 
 async function generateWithRetry(
-  content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }>, 
+  content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }>,
   mode: 'catalog' | 'tryon' = 'catalog',
   garmentDescription?: string,
   personDescription?: string,
@@ -52,10 +52,10 @@ async function generateWithRetry(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       console.log(`Intento ${attempt + 1} de ${maxRetries} - Modo: ${mode}`);
-      
+
       // Seleccionar prompt específico según el modo
       let currentPrompt: string;
-      
+
       if (mode === 'catalog') {
         // MODO DUEÑO: Máxima fidelidad de prenda
         const garmentDesc = garmentDescription || 'prenda elegante de alta calidad';
@@ -75,13 +75,13 @@ async function generateWithRetry(
         currentPrompt = promptFunction(basePrompt);
         console.log('Using GENERIC mode - Fallback prompt');
       }
-      
+
       // Actualizar el contenido de texto
       const updatedContent = [...content];
       updatedContent[0] = { type: 'text', text: currentPrompt };
-      
+
       const { files } = await generateText({
-        model: google('gemini-2.5-flash-image'),
+        model: google('gemini-3-pro-image-preview'),
         messages: [
           {
             role: 'user',
@@ -100,15 +100,15 @@ async function generateWithRetry(
         console.log(`Éxito en intento ${attempt + 1}`);
         return files[0];
       }
-      
+
       // Si no hay files, esperar antes del siguiente intento
       if (attempt < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
-      
+
     } catch (error: any) {
       console.log(`Error en intento ${attempt + 1}:`, error.message);
-      
+
       if (error.message?.includes('SAFETY') || error.message?.includes('PROHIBITED_CONTENT')) {
         // Para errores de seguridad, esperar más tiempo
         if (attempt < maxRetries - 1) {
@@ -120,26 +120,26 @@ async function generateWithRetry(
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-      
+
       // Si es el último intento, lanzar el error
       if (attempt === maxRetries - 1) {
         throw error;
       }
     }
   }
-  
+
   return null;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      imagePrompt, 
-      modelImage, 
-      garmentImage, 
+    const {
+      imagePrompt,
+      modelImage,
+      garmentImage,
       mode = 'catalog',
       garmentDescription,
-      personDescription 
+      personDescription
     }: GenerateImageRequest = await request.json();
 
     console.log('=== INICIO GENERACIÓN DE IMAGEN ===');
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     console.log('Person description:', personDescription?.substring(0, 50) + '...');
 
     const sanitizedModelImage = await sanitizeModelImage(modelImage);
-    
+
     // Los análisis detallados ya vienen desde el frontend
     // Solo usamos los que nos pasan en garmentDescription y personDescription
     const detailedGarmentDesc = garmentDescription || 'prenda elegante de alta calidad';
